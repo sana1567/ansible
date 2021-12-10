@@ -1,2 +1,1 @@
-# ansible
-Automatic deployment
+Автоматическое развертывание виртуальных машин через ansible

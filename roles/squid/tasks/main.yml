@@ -1,0 +1,80 @@
+---
+
+- name: Install squid
+  apt: 
+    name:
+      - squid-openssl 
+    update_cache: yes 
+    state: present
+
+- name: Load configuration openssl
+  template: 
+    src: openssl.cnf
+    dest: /etc/ssl/openssl.cnf         
+    mode: '0644'         
+
+- name: Load configuration squid
+  template: 
+    src: squid.conf
+    dest: /etc/squid/squid.conf         
+    mode: '0644' 
+
+- name: Generate an OpenSSL private key with the default values (4096 bits, RSA)
+  openssl_privatekey:
+    path: /etc/squid/bump.key
+
+- name: Generate following self-signed root CA certificate files
+  openssl_csr:
+    path: /etc/squid/bump.csr
+    privatekey_path: /etc/squid/bump.key
+    country_name: FR
+    organization_name: Ansible
+    email_address: jdoe@ansible.com
+    common_name: www.ansible.com
+
+- name: Create self-signed certificate OpenSSL
+  openssl_certificate:
+    csr_path: /etc/squid/bump.csr
+    path: /etc/squid/bump.crt
+    privatekey_path: /etc/squid/bump.key
+    provider: selfsigned        
+
+- name: Generate the settings file for the Diffie-Hellman algorithm
+  openssl_dhparam:
+    path: /etc/squid/bump_dhparam.pem
+    size: 2048      
+
+- name: Initializing database directories and cache SSL
+  command: /usr/lib/squid/security_file_certgen -c -s /var/spool/squid/ssl_db -M 20MB
+  args:
+    creates: /var/spool/squid/ssl_db/index.txt
+  #register: ssldb
+
+- name: Change folder permissions /var/spool/squid/ssl_db
+  ansible.builtin.file:
+    path: /var/spool/squid/ssl_db
+    state: directory
+    recurse: true
+    mode: '0755'
+    owner: proxy
+    group: proxy
+  #when: ssldb.changed
+
+- name: Сreate cache_dir
+  ansible.builtin.file:
+    path: /var/cache/squid
+    state: directory
+    mode: '0755'
+    owner: proxy
+    group: proxy
+      
+- name: restart service squid-openssl
+  ansible.builtin.service:
+    name: squid
+    state: restarted
+    
+- name: To check cache squid using wget, load the config wget
+  template: 
+    src: wgetrc
+    dest: /etc/wgetrc         
+    #mode: '0644' 
