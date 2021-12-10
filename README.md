@@ -7,5 +7,6 @@ Install squid. With ansible we change 3 config files squid.conf, openssl.cnf, wg
 
 Checking work via wget
 wget https://yandex.ru --no-check-certificate
+
 You need to test on a file, caching will not work on these links
 sudo tail -f /var/log/squid/access.log - view the log here
